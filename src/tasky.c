@@ -4,6 +4,7 @@
 #include <string.h> //for string manipulation duh
 #include <time.h> //for getting time string into the tasks log file
 #include <unistd.h> //for ftruncate system call
+#include <stdbool.h>
 
 #define MAX_SIZE 300
 
@@ -95,6 +96,30 @@ static Coordinates* get_coordinates(FILE *fp, int line_number){
     return point;
 }
 
+static Coordinates* get_coordinates_by_buffer(char* string, int line_num){
+    Coordinates *p = (Coordinates*)malloc(sizeof(Coordinates));
+    bool state = true;
+    char c = string[0];
+    int index = 0;
+    int line_count = 1, end = -1, start = 0;
+
+    while (line_count <= line_num && c != '\0'){
+        c = string[index];
+        ++index;
+        if (line_count == line_num)
+            state = false;
+        if (c == '\n'){
+            ++line_count;
+            if (state != false)
+            start = end + 2;
+        }
+        ++end;
+    }
+    p->start = start;
+    p->end = end;
+    return p;
+}
+
 static long file_size(FILE *fp){
     rewind(fp);
     fseek(fp, 0, SEEK_END);
@@ -122,8 +147,8 @@ static Line_Data* assign_nums(FILE *fp, char done[], char not_done[]){
     //allocating the struct
     Line_Data *p = (Line_Data*)malloc(sizeof(Line_Data));
 
-    int* completed = (int*)malloc(num1*sizeof(int));
-    int* not_completed = (int*)malloc(num2*sizeof(int));
+    int* completed = (int*)calloc(num1, sizeof(int));
+    int* not_completed = (int*)calloc(num2, sizeof(int));
     char* data = (char*)malloc(MAX_SIZE*sizeof(char));
     while (fgets(data, MAX_SIZE, fp)){
         ++line_count;
@@ -167,7 +192,8 @@ static void organize(Line_Data *point, FILE *fp){
 
     //printing the completed tasks
     fseek(fp , 0, SEEK_SET);
-    printf("< COMPLETED TASKS > \n");
+    if (point->compl[0] != 0){
+    printf("< COMPLETED TASKS > \n");}
     while(fgets(data, MAX_SIZE, fp)){
         ++line_count;
         for (int i=0;i<point->count1;i++){
@@ -179,7 +205,8 @@ static void organize(Line_Data *point, FILE *fp){
     line_count = 0;
     rewind(fp);
     //printing the non completed tasks
-    printf("< STILL NOT COMPLETED > \n");
+    if (point->not_compl[0] != 0){
+    printf("< STILL NOT COMPLETED > \n");}
     while(fgets(data, MAX_SIZE, fp)){
         ++line_count;
         for (int i=0;i<point->count2;i++){
@@ -209,12 +236,12 @@ static void mark_all(FILE *fp, char done[], char not_done[],  Line_Data* point){
     fseek(fp, 0, SEEK_SET);
     fread(buffer, 1, file_size(fp), fp);
     for (int i=0;i<point->count2;i++){
-    Coordinates *get = get_coordinates(fp, point->not_compl[i]);
+    Coordinates *get = get_coordinates_by_buffer(buffer, point->not_compl[i]);
     memmove(buffer+get->start, done, strlen(done));
-    memmove(buffer+get->start+strlen(done), buffer+get->start+strlen(not_done), file_size(fp) - (get->start+strlen(not_done)));
+    memmove(buffer+get->start+strlen(done), buffer+get->start+strlen(not_done), file_size(fp) - (get->start+strlen(not_done)));    
+    }
     fseek(fp, 0, SEEK_SET);
     fwrite(buffer, 1, file_size(fp), fp);
-    }
     ftruncate(fileno(fp), file_size(fp) - point->count2*(strlen(not_done) - strlen(done)));
     free(buffer);
 }
@@ -223,12 +250,16 @@ int main(int argc, char **argv){
 	char done[]="✅";
 	char not_done[]="⚠️";
 
+    if (strcmp(argv[1],"help") == 0 || strcmp(argv[1], "-h") == 0){
+        help_sec();
+    }
+    else {
 	FILE *fp = fopen("tasks.log","r+");
 	if (fp == NULL){
 		printf("Error 01: File cannot be opened.\n");
-		return 0;
+		return 1;
 	}
-
+    
 	//functioning of the program according to arguments given
 	if (strcmp(argv[1], "add") == 0){
 		add(not_done, fp, argv[2]);
@@ -296,10 +327,7 @@ int main(int argc, char **argv){
         }
     }
 
-    else if (strcmp(argv[1],"help") == 0 || strcmp(argv[1], "-h") == 0){
-		help_sec();
-	}
-
     fclose(fp);
+    }
     return 0;
 }

@@ -45,6 +45,14 @@ gcc tasky.c -o executable_name.extension
 ```
 -h will print the help menu needed for the first time.
 
+## Things to keep in mind
+Tasky needs to have a file called "tasks.log" already created before using it. It's because, I am
+opening it in r+ mode (refer to src/tasky.c to check), so better create the file before executing the program.
+This can be done by
+```bash
+touch tasks.log
+```
+
 
 
 
