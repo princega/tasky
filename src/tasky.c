@@ -247,25 +247,35 @@ static void mark_all(FILE *fp, char done[], char not_done[],  Line_Data* point){
 }
 
 int main(int argc, char **argv){
-	char done[]="✅";
-	char not_done[]="⚠️";
+    char done[]="✅";
+    char not_done[]="⚠️";
 
+    if (argc == 2){
     if (strcmp(argv[1],"help") == 0 || strcmp(argv[1], "-h") == 0){
         help_sec();
     }
     else {
-	FILE *fp = fopen("tasks.log","r+");
-	if (fp == NULL){
-		printf("Error 01: File cannot be opened.\n");
-		return 1;
-	}
-    
-	//functioning of the program according to arguments given
-	if (strcmp(argv[1], "add") == 0){
-		add(not_done, fp, argv[2]);
-	}
+    FILE *fp = fopen("tasks.log","r+");
+    if (fp == NULL){
+        printf("Error 01: File cannot be opened.\n");
+        return 1;
+    }
+    if (strcmp(argv[1], "organize") == 0){
+        Line_Data *point = assign_nums(fp, done, not_done);
+        organize(point, fp);
+    }
+    fclose(fp);
+    }
+    }
 
-	else if (strcmp(argv[1], "show") == 0 && strcmp(argv[2], "all") == 0){
+    else if (argc == 3){
+    FILE *fp = fopen("tasks.log","r+");
+    if (fp == NULL){
+        printf("Error 01: File cannot be opened.\n");
+        return 1;
+    }
+
+    if (strcmp(argv[1], "show") == 0 && strcmp(argv[2], "all") == 0){
         char c; 
         while ((c = fgetc(fp))!= EOF){
             putchar(c);
@@ -274,23 +284,29 @@ int main(int argc, char **argv){
             printf("File cannot be found.\n");
         }
     }
-
+    else if (strcmp(argv[1], "add") == 0){
+        Found* r = find_line(fp, argv[2]);
+        if (r == NULL){
+        add(not_done, fp, argv[2]);}
+        else {
+            printf("Task already added.\n");
+            free(r);
+        }
+    }
     else if (strcmp(argv[1], "show") == 0){
-    	Found* w = find_line(fp, argv[2]);
-    	if (w != NULL){
-    		printf("%s\n",w->p);
-    		free(w);
-    	}
-    	else if (w == NULL){
-    		printf("Task cannot be found.\n");
-    	}
+        Found* w = find_line(fp, argv[2]);
+        if (w != NULL){
+            printf("%s\n",w->p);
+            free(w);
+        }
+        else if (w == NULL){
+            printf("Task cannot be found.\n");
+        }
     }
-
     else if (strcmp(argv[1], "delete") == 0 && strcmp(argv[2], "all") == 0){
-    	fclose(fp);
-    	fp = fopen("tasks.log","w");
+        fclose(fp);
+        fp = fopen("tasks.log","w");
     }
-
     else if (strcmp(argv[1], "delete") == 0){
         Found *get = find_line(fp, argv[2]);
         if (get != NULL){
@@ -303,31 +319,30 @@ int main(int argc, char **argv){
             printf("Line cannot be found\n");
         }
     }
-
-    else if (strcmp(argv[1], "organize") == 0){
-        Line_Data *point = assign_nums(fp, done, not_done);
-        organize(point, fp);
-    }
-
     else if (strcmp(argv[1], "done") == 0 && strcmp(argv[2], "all") == 0){
-    	Line_Data *p = assign_nums(fp, done, not_done);
+        Line_Data *p = assign_nums(fp, done, not_done);
         mark_all(fp, done, not_done, p);
         free(p);
     }
-
     else if (strcmp(argv[1], "done") == 0){
         Found* get = find_line(fp, argv[2]);
         if (get != NULL){
+            if (strstr(get->p, done) == NULL){
             Coordinates *y = get_coordinates(fp, get->position);
             mark_as_done(fp, done, not_done, y);
-            free(y);
+            free(y);}
+            else if (strstr(get->p, done) != NULL)
+                printf("Task already marked as done.\n");
+        free(get);
         }
         else {
-            printf("File cannot be found\n");
+            printf("Line cannot be found\n");
         }
     }
-
     fclose(fp);
+    }
+    else {
+        printf("Invalid Command. Refer to -h for help.\n");
     }
     return 0;
 }
